@@ -55,11 +55,11 @@ def sample_image_color(surf):
 
 # preload images
 images = {
-    "walk0": pygame.image.load("person.png").convert_alpha(),
-    "walk1": pygame.image.load("person2.png").convert_alpha(),
-    "walk2": pygame.image.load("person3.png").convert_alpha(),
-    "jump_up": pygame.image.load("person_jump.png").convert_alpha(),
-    "jump_down": pygame.image.load("person_jump2.png").convert_alpha(),
+    "walk0": pygame.image.load("assets/person.png").convert_alpha(),
+    "walk1": pygame.image.load("assets/person2.png").convert_alpha(),
+    "walk2": pygame.image.load("assets/person3.png").convert_alpha(),
+    "jump_up": pygame.image.load("assets/person_jump.png").convert_alpha(),
+    "jump_down": pygame.image.load("assets/person_jump2.png").convert_alpha(),
 }
 for k in images:
     images[k] = pygame.transform.scale(images[k], (40, 80))
@@ -80,8 +80,8 @@ def pix(size):
     return int(size / 1) * 1
 
 
-explosion = pygame.mixer.Sound("explosion.mp3")
-music = pygame.mixer.Sound("music.mp3")
+explosion = pygame.mixer.Sound("assets/explosion.mp3")
+music = pygame.mixer.Sound("assets/music.mp3")
 
 posy = 100
 
