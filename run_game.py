@@ -103,7 +103,7 @@ ground = 500
 
 range1 = [0, 0]
 
-jumps = [[0, 300, 1200, [0, 0, 200]]]
+jumps = [[0, 300, 2000, [0, 0, 200]]]
 
 power = 0
 
@@ -122,7 +122,6 @@ while running:
 
     music.play(loops=-1)
 
-    # pygame.event.poll()
     # check if the user wants to exit
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -239,8 +238,8 @@ while running:
                         [
                             600,
                             600,
-                            math.sin(angle) * 40 * random.random(),
-                            math.cos(angle) * 40 * random.random() - 20,
+                            math.sin(angle) * 20 * random.random() + speed,
+                            math.cos(angle) * 20 * random.random() - 20,
                             random.random() * PARTICLE_SIZE,
                             particle_color,
                         ]
