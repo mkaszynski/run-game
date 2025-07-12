@@ -3,6 +3,8 @@ import time
 import random
 import pickle
 import os
+import numpy as np
+import math
 
 name = input("name: ")
 
@@ -11,7 +13,8 @@ pygame.mixer.init()
 
 
 # Set up the drawing window
-screen = pygame.display.set_mode([1800, 900])
+# screen = pygame.display.set_mode([1800, 900])
+screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 
 font = pygame.font.Font("freesansbold.ttf", 32)
 
@@ -65,6 +68,8 @@ back = []
 
 operations = False
 
+time1 = 0
+
 # Run until the user asks to quit
 running = True
 while running:
@@ -72,6 +77,8 @@ while running:
     screen.fill((0, 0, 0))
     pygame.event.poll()
     keys = pygame.key.get_pressed()
+
+    time1 += 1
 
     pygame.mixer.Sound.play(music)
 
@@ -82,7 +89,7 @@ while running:
         power -= 4
         # pygame.mixer.Sound.pause(music)
     else:
-        power += 2
+        power = 200 - (200 - power) * 0.975
 
     if keys[pygame.K_SPACE] and power < 20:
         power = 0
@@ -170,14 +177,15 @@ while running:
         else:
             pygame.mixer.Sound.stop(music)
             if len(explosions) < 10:
-                for i in range(100):
+                for i in range(200):
                     pygame.mixer.Sound.play(explosion)
+                    angle = random.random() * 100
                     explosions.append(
                         [
-                            300,
-                            300,
-                            random.random() * 40 - 20,
-                            random.random() * 40 - 20,
+                            600,
+                            600,
+                            math.sin(angle) * 40 * random.random(),
+                            math.cos(angle) * 40 * random.random() - 20,
                         ]
                     )
 
@@ -236,16 +244,58 @@ while running:
         pygame.draw.rect(screen, i[3], map1)
 
     for i in explosions:
-        map1 = pygame.Rect(
-            pix(i[0]) + 300, pix(i[1] - posy + 300) + 300, pix(5), pix(5)
+        map1 = pygame.Rect(i[0], i[1], pix(5), pix(5))
+        pygame.draw.rect(
+            screen,
+            (random.random() * 255, random.random() * 255, random.random() * 255),
+            map1,
         )
-        pygame.draw.rect(screen, (200, 0, 0), map1)
 
     if len(explosions) == 0:
-        map1 = pygame.Rect(
-            pix(300) + 300 - 10, pix(posy - posy + 300) + 300 - 10, 20, 20
-        )
-        pygame.draw.rect(screen, (200, 0, 0), map1)
+        # map1 = pygame.Rect(
+        #     pix(300) + 300 - 10, pix(posy - posy + 300) + 300 - 10, 20, 20
+        # )
+        # pygame.draw.rect(screen, (200, 0, 0), map1)
+        this_dir = os.path.dirname(__file__)
+        image_file = os.path.join(this_dir, "person.png")
+        image = pygame.image.load(image_file).convert()
+        image.set_colorkey((0, 0, 0))
+        image = pygame.transform.scale(image, (40, 80))
+        rect = image.get_rect()
+        rect.center = (600 - 10 - 10, 600 - 10 - 20)
+        # screen.blit(image, rect)
+
+        speedn = 1.5
+
+        type1 = "person.png"
+        if int(10 / speedn) < time1 % int(30 / speedn) <= int(20 / speedn):
+            type1 = "person2.png"
+        elif int(20 / speedn) < time1 % int(30 / speedn) <= int(30 / speedn):
+            type1 = "person3.png"
+
+        if posy < ground - 20:
+            if vely < 0:
+                type1 = "person_jump.png"
+            else:
+                type1 = "person_jump2.png"
+
+        this_dir = os.path.dirname(__file__)
+        image_file = os.path.join(this_dir, type1)
+        image = pygame.image.load(image_file).convert_alpha()
+        image = pygame.transform.scale(image, (40, 80))
+
+        arr = pygame.surfarray.pixels3d(image)
+        alpha = pygame.surfarray.pixels_alpha(image)
+
+        mask = np.all(arr == (0, 0, 0), axis=-1)
+        alpha[mask] = 0
+
+        del arr
+        del alpha
+
+        rect = image.get_rect()
+        rect.center = (600 - 10 - 10, 600 - 10 - 20)
+        screen.blit(image, rect)
 
     add_line(screen, f"points: {int(length * -0.1)}", 0, 0)
     add_line(screen, f"speed {int(speed * 0.3 - 2)}", 0, 45)
@@ -263,18 +313,24 @@ pygame.quit()
 
 print(f"points: {int(length * -0.1)}")
 
-l = False
+has_scores = False
 for i in high_scores:
     if i[0] == name:
-        l = True
+        has_scores = True
         if int(length * -0.1) > i[1]:
             i[1] = int(length * -0.1)
 
-if not l:
+if not has_scores:
     high_scores.append([name, int(length * -0.1)])
 
-for i in high_scores:
-    print(f"high score for {i[0]}: {i[1]}")
+# get sorted score indices
+indices = np.argsort([score for name, score in high_scores])[::-1]
+
+print()
+print("########## High Scores ##########")
+for index in indices:
+    name, score = high_scores[index]
+    print(f"{name:15s}   {score:15d}")
 
 if operations:
     while True:
