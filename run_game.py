@@ -21,7 +21,7 @@ font = pygame.font.Font("freesansbold.ttf", 32)
 clock = pygame.time.Clock()
 
 N_EXPLOSIONS = 200
-ULTRA_VIOLENCE = True
+ULTRA_VIOLENCE = False
 BLOOD_COLOR = (215, 0, 0)
 PARTICLE_SIZE = 14
 
@@ -80,8 +80,8 @@ def pix(size):
     return int(size / 1) * 1
 
 
-explosion = pygame.mixer.Sound("/home/michael/coding/python/games/explosion.mp3")
-music = pygame.mixer.Sound("/home/michael/coding/python/games/music.mp3")
+explosion = pygame.mixer.Sound("explosion.mp3")
+music = pygame.mixer.Sound("music.mp3")
 
 posy = 100
 
@@ -103,7 +103,7 @@ ground = 500
 
 range1 = [0, 0]
 
-jumps = [[0, 300, 2000, [0, 0, 200]]]
+jumps = [[0, 300, 1000, [0, 0, 200]], [1000, 300, 1000, [0, 0, 200]]]
 
 power = 0
 
