@@ -1,8 +1,7 @@
-import pygame
 import time
+import pygame
 import random
 import pickle
-import os
 import numpy as np
 import math
 
@@ -13,10 +12,18 @@ pygame.mixer.init()
 
 
 # Set up the drawing window
-# screen = pygame.display.set_mode([1800, 900])
-screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-
+screen = pygame.display.set_mode(
+    (1920, 1200),
+    pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.SCALED | pygame.FULLSCREEN,
+    vsync=1,
+)
 font = pygame.font.Font("freesansbold.ttf", 32)
+clock = pygame.time.Clock()
+
+N_EXPLOSIONS = 200
+ULTRA_VIOLENCE = True
+BLOOD_COLOR = (215, 0, 0)
+PARTICLE_SIZE = 14
 
 
 def add_line(screen, text, x, y):
@@ -25,6 +32,42 @@ def add_line(screen, text, x, y):
     text_rect = text.get_rect()
     text_rect.topleft = (x, y)
     screen.blit(text, text_rect)
+
+
+def sample_image_color(surf):
+    arr = pygame.surfarray.pixels3d(surf)
+    alpha = pygame.surfarray.pixels_alpha(surf)
+    h, w = surf.get_height(), surf.get_width()
+
+    # if random.random() < 0.3:
+    #     return BLOOD_COLOR
+
+    for _ in range(1000):
+        x = random.randint(0, w - 1)
+        y = random.randint(0, h - 1)
+        if alpha[x][y] > 0:
+            color = tuple(arr[x][y])
+            del arr, alpha
+            return color
+    del arr, alpha
+    return (255, 255, 255)
+
+
+# preload images
+images = {
+    "walk0": pygame.image.load("person.png").convert_alpha(),
+    "walk1": pygame.image.load("person2.png").convert_alpha(),
+    "walk2": pygame.image.load("person3.png").convert_alpha(),
+    "jump_up": pygame.image.load("person_jump.png").convert_alpha(),
+    "jump_down": pygame.image.load("person_jump2.png").convert_alpha(),
+}
+for k in images:
+    images[k] = pygame.transform.scale(images[k], (40, 80))
+    arr = pygame.surfarray.pixels3d(images[k])
+    alpha = pygame.surfarray.pixels_alpha(images[k])
+    mask = np.all(arr == (0, 0, 0), axis=-1)
+    alpha[mask] = 0
+    del arr, alpha
 
 
 try:
@@ -70,17 +113,24 @@ operations = False
 
 time1 = 0
 
+
 # Run until the user asks to quit
 running = True
 while running:
     # Fill the background with white
     screen.fill((0, 0, 0))
-    pygame.event.poll()
+
+    music.play(loops=-1)
+
+    # pygame.event.poll()
+    # check if the user wants to exit
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
     keys = pygame.key.get_pressed()
 
     time1 += 1
-
-    pygame.mixer.Sound.play(music)
 
     if keys[pygame.K_SPACE] and power > 20:
         if posy == ground:
@@ -177,15 +227,22 @@ while running:
         else:
             pygame.mixer.Sound.stop(music)
             if len(explosions) < 10:
-                for i in range(200):
+                for i in range(N_EXPLOSIONS):
                     pygame.mixer.Sound.play(explosion)
                     angle = random.random() * 100
+                    particle_color = (
+                        BLOOD_COLOR
+                        if ULTRA_VIOLENCE
+                        else sample_image_color(images["walk0"])
+                    )
                     explosions.append(
                         [
                             600,
                             600,
                             math.sin(angle) * 40 * random.random(),
                             math.cos(angle) * 40 * random.random() - 20,
+                            random.random() * PARTICLE_SIZE,
+                            particle_color,
                         ]
                     )
 
@@ -193,11 +250,6 @@ while running:
         length -= speed
 
     speed += 0.005
-
-    # Did the user click the window close button?
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
 
     for i in jumps:
         if i[0] + length < -2000:
@@ -236,6 +288,16 @@ while running:
 
     for i in jumps:
         map1 = pygame.Rect(
+            pix(i[0] + length) + 295,
+            pix(i[1] + 10 - posy + 300) + 295,
+            pix(i[2]) + 10,
+            pix(10000) + 10,
+        )
+        edge_color = [255 - int((255 - c) * 0.7) for c in i[3]]
+        pygame.draw.rect(screen, edge_color, map1)
+
+    for i in jumps:
+        map1 = pygame.Rect(
             pix(i[0] + length) + 300,
             pix(i[1] + 10 - posy + 300) + 300,
             pix(i[2]),
@@ -243,56 +305,32 @@ while running:
         )
         pygame.draw.rect(screen, i[3], map1)
 
-    for i in explosions:
-        map1 = pygame.Rect(i[0], i[1], pix(5), pix(5))
+    for pos_x, pos_y, _, _, sz, particle_color in explosions:
+        map1 = pygame.Rect(pos_x, pos_y, sz, sz)
+
+        # particle_color = (
+        #     (random.random() * 255, random.random() * 255, random.random() * 255),
+        # )
+        # particle_color = (150, 0, 0)
         pygame.draw.rect(
             screen,
-            (random.random() * 255, random.random() * 255, random.random() * 255),
+            particle_color,
             map1,
         )
 
     if len(explosions) == 0:
-        # map1 = pygame.Rect(
-        #     pix(300) + 300 - 10, pix(posy - posy + 300) + 300 - 10, 20, 20
-        # )
-        # pygame.draw.rect(screen, (200, 0, 0), map1)
-        this_dir = os.path.dirname(__file__)
-        image_file = os.path.join(this_dir, "person.png")
-        image = pygame.image.load(image_file).convert()
-        image.set_colorkey((0, 0, 0))
-        image = pygame.transform.scale(image, (40, 80))
-        rect = image.get_rect()
-        rect.center = (600 - 10 - 10, 600 - 10 - 20)
-        # screen.blit(image, rect)
-
         speedn = 1.5
 
-        type1 = "person.png"
+        image_name = "walk0"
         if int(10 / speedn) < time1 % int(30 / speedn) <= int(20 / speedn):
-            type1 = "person2.png"
+            image_name = "walk1"
         elif int(20 / speedn) < time1 % int(30 / speedn) <= int(30 / speedn):
-            type1 = "person3.png"
+            image_name = "walk2"
 
         if posy < ground - 20:
-            if vely < 0:
-                type1 = "person_jump.png"
-            else:
-                type1 = "person_jump2.png"
+            image_name = "jump_down" if vely < 0 else "jump_up"
 
-        this_dir = os.path.dirname(__file__)
-        image_file = os.path.join(this_dir, type1)
-        image = pygame.image.load(image_file).convert_alpha()
-        image = pygame.transform.scale(image, (40, 80))
-
-        arr = pygame.surfarray.pixels3d(image)
-        alpha = pygame.surfarray.pixels_alpha(image)
-
-        mask = np.all(arr == (0, 0, 0), axis=-1)
-        alpha[mask] = 0
-
-        del arr
-        del alpha
-
+        image = images[image_name]
         rect = image.get_rect()
         rect.center = (600 - 10 - 10, 600 - 10 - 20)
         screen.blit(image, rect)
@@ -303,10 +341,12 @@ while running:
     map1 = pygame.Rect(0, 80, power, 20)
     pygame.draw.rect(screen, (200 - power, 0, power), map1)
 
-    time.sleep(1 / 60)
+    clock.tick(60)
+    # time.sleep(1 / 150)
 
     # Flip the display
     pygame.display.flip()
+
 
 # Done! Time to quit.
 pygame.quit()
